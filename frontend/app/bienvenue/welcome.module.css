@@ -1,0 +1,40 @@
+.page { background: var(--page-bg); color: var(--text-main); padding: 36px 20px 78px; }
+.shell { max-width: 1160px; margin: 0 auto; }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 32px; background: #173f37; color: #fff; padding: clamp(32px, 5vw, 68px); border-radius: 18px; }
+.hero h1 { max-width: 700px; margin: 10px 0 17px; font-family: var(--font-editorial-accent); font-size: clamp(38px, 5vw, 68px); font-weight: 400; line-height: 1.05; }
+.hero p:not(.eyebrow) { max-width: 620px; color: #d9e8da; line-height: 1.6; }
+.eyebrow { margin: 0; color: #d6bf8e; font-size: 11px; font-weight: 700; letter-spacing: .15em; }
+.heroMark { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; color: #d6bf8e; font-size: 11px; letter-spacing: .16em; }
+.section, .more { margin-top: 48px; }
+.sectionHeading { display: flex; align-items: baseline; gap: 16px; margin-bottom: 19px; }
+.sectionHeading span { color: #a77c48; font-size: 12px; letter-spacing: .14em; }
+.sectionHeading h2 { margin: 0; font-family: var(--font-editorial-accent); font-size: clamp(28px, 3vw, 40px); font-weight: 400; }
+.paths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.path { display: flex; min-height: 262px; flex-direction: column; align-items: flex-start; padding: 25px; background: var(--surface-1); border: 1px solid var(--border-soft); border-radius: 14px; }
+.path > svg { color: var(--color-red); }
+.path h3, .more h3 { margin: 16px 0 7px; font-size: 19px; font-weight: 600; }
+.path p, .more p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.5; }
+.path a, .more a { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 20px; color: var(--color-red); font-size: 13px; font-weight: 700; text-decoration: none; }
+.path a:hover, .more a:hover { text-decoration: underline; }
+.dualLinks { display: flex; flex-wrap: wrap; gap: 22px; margin-top: auto; }
+.legalNote { display: grid; grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); gap: 32px; margin-top: 20px; padding: 26px 28px; border: 1px solid var(--border-soft); border-radius: 15px; background: #f3f0e8; }
+.noteLabel { color: #80643f; font-size: 11px; font-weight: 700; letter-spacing: .14em; }
+.legalNote h2 { margin: 10px 0 0; font-family: var(--font-editorial-accent); font-size: clamp(25px, 3vw, 35px); font-weight: 400; line-height: 1.15; }
+.legalNote p { margin: 0; font-size: 14px; line-height: 1.6; }
+.legalNote .legalCaveat { margin-top: 12px; color: var(--text-muted); font-size: 12px; }
+.sources { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 15px; margin-top: 16px; font-size: 12px; }
+.sources span { font-weight: 700; }
+.sources a { color: #17624e; text-decoration: underline; text-underline-offset: 2px; }
+.more { padding: 28px; border: 1px solid var(--border-soft); border-radius: 15px; background: var(--surface-1); }
+.moreGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.moreGrid > div { display: flex; flex-direction: column; align-items: flex-start; min-height: 170px; }
+.moreGrid > div + div { border-left: 1px solid var(--border-soft); padding-left: 24px; }
+.moreGrid svg { color: var(--color-red); }
+.moreGrid a { margin-top: auto; }
+.pending { display: inline-block; margin-top: 15px; color: var(--text-muted); font-size: 12px; }
+.continue { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 27px; }
+.continue p { margin: 0; color: var(--text-muted); font-size: 13px; }
+.continue a { display: inline-flex; align-items: center; gap: 11px; padding: 13px 17px; background: var(--color-red); border-radius: 10px; color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; }
+.continue a:hover { background: var(--color-dark); }
+@media (max-width: 820px) { .paths, .moreGrid, .legalNote { grid-template-columns: 1fr; } .legalNote { gap: 16px; } .path, .moreGrid > div { min-height: auto; } .path a, .more a { margin-top: 18px; } .moreGrid > div + div { border-left: 0; border-top: 1px solid var(--border-soft); padding: 22px 0 0; } }
+@media (max-width: 580px) { .page { padding: 16px 14px 54px; } .hero { grid-template-columns: 1fr; } .heroMark { display: none; } .more { padding: 22px; } .continue { align-items: flex-start; flex-direction: column; } }

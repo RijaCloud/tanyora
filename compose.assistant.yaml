@@ -1,0 +1,21 @@
+services:
+  base-web:
+    environment:
+      TANYORA_ASSISTANT_ENABLED: "true"
+      TANYORA_ASSISTANT_SERVICE_URL: http://assistant-service:3081
+      TANYORA_ASSISTANT_SERVICE_SECRET: ${TANYORA_ASSISTANT_SERVICE_SECRET:?Set assistant secret}
+  assistant-service:
+    image: node:22-alpine
+    restart: unless-stopped
+    working_dir: /app
+    command: ["node", "server.mjs"]
+    environment:
+      PORT: "3081"
+      OPENAI_API_KEY: ${TANYORA_OPENAI_API_KEY:?Set dedicated Tanyora API key}
+      OPENAI_MODEL: ${TANYORA_OPENAI_MODEL:?Set approved model}
+      TANYORA_ASSISTANT_SERVICE_SECRET: ${TANYORA_ASSISTANT_SERVICE_SECRET:?Set assistant secret}
+    volumes:
+      - ./assistant-service:/app:ro
+    networks: [internal, preview]
+    mem_limit: 128m
+    cpus: 0.25

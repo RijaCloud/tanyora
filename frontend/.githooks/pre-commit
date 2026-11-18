@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "Checking staged copy..."
+pnpm run check:staged-copy

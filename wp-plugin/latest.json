@@ -1,0 +1,13 @@
+{
+  "name": "Tanyora Platform",
+  "slug": "2424-platform",
+  "version": "1.0.316",
+  "download_url": "/2424-platform/2424-platform-wp-1.0.316.zip",
+  "requires": "6.0",
+  "tested": "6.8",
+  "requires_php": "8.1",
+  "last_updated": "2026-10-20",
+  "sections": {
+    "description": "Plugin de liaison pour la plateforme Tanyora."
+  }
+}

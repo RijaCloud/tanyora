@@ -1,0 +1,171 @@
+name: Publish WP Plugin
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: publish-wp-plugin-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: write
+
+    env:
+      PLUGIN_SLUG: 2424-platform
+      CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+      PLUGIN_UPDATE_BASE_URI: ${{ secrets.PLUGIN_UPDATE_BASE_URI }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auto bump plugin version
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[publish-only]')) }}
+        id: bump_version
+        shell: bash
+        run: |
+          CURRENT_VERSION="$(awk -F'Version:' '/^[[:space:]]*\* Version:/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' 2424-platform.php)"
+          if [ -z "$CURRENT_VERSION" ]; then
+            echo "Unable to extract current plugin version."
+            exit 1
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          if [ -z "$MAJOR" ] || [ -z "$MINOR" ] || [ -z "$PATCH" ]; then
+            echo "Current version is not valid semver: $CURRENT_VERSION"
+            exit 1
+          fi
+
+          NEXT_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+
+          python - <<PY
+          from pathlib import Path
+
+          next_version = "${NEXT_VERSION}"
+
+          plugin_file = Path("2424-platform.php")
+          plugin_text = plugin_file.read_text(encoding="utf-8")
+          plugin_text = plugin_text.replace(
+              next(line for line in plugin_text.splitlines() if " * Version:" in line),
+              next(line for line in plugin_text.splitlines() if " * Version:" in line).split("Version:")[0] + f"Version: {next_version}",
+              1,
+          )
+          plugin_text = plugin_text.replace(
+              next(line for line in plugin_text.splitlines() if "PLATFORM_2424_PLUGIN_VERSION" in line),
+              f"define('PLATFORM_2424_PLUGIN_VERSION', '{next_version}');",
+              1,
+          )
+          plugin_file.write_text(plugin_text, encoding="utf-8")
+
+          readme_file = Path("readme.txt")
+          readme_text = readme_file.read_text(encoding="utf-8")
+          readme_text = readme_text.replace(
+              next(line for line in readme_text.splitlines() if line.startswith("Stable tag:")),
+              f"Stable tag: {next_version}",
+              1,
+          )
+          readme_file.write_text(readme_text, encoding="utf-8")
+
+          import json
+          import os
+          from datetime import date
+
+          latest_file = Path("latest.json")
+          latest_payload = {}
+          if latest_file.exists():
+              latest_payload = json.loads(latest_file.read_text(encoding="utf-8-sig"))
+
+          base_uri = (os.environ.get("PLUGIN_UPDATE_BASE_URI") or "").rstrip("/")
+          download_url = f"{base_uri}/2424-platform/2424-platform-wp-{next_version}.zip" if base_uri else f"/2424-platform/2424-platform-wp-{next_version}.zip"
+
+          latest_payload.update({
+              "name": latest_payload.get("name") or "2424 Platform",
+              "slug": latest_payload.get("slug") or "2424-platform",
+              "version": next_version,
+              "download_url": download_url,
+              "requires": latest_payload.get("requires") or "6.0",
+              "tested": latest_payload.get("tested") or "6.8",
+              "requires_php": latest_payload.get("requires_php") or "8.1",
+              "last_updated": str(date.today()),
+              "sections": latest_payload.get("sections") or {"description": "Solution Winford Next pour la plateforme 2424."},
+          })
+          latest_file.write_text(json.dumps(latest_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          PY
+
+          echo "version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[publish-only]')) }}
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add 2424-platform.php readme.txt latest.json
+          git commit -m "Bump plugin version to ${{ steps.bump_version.outputs.version }} [skip ci]"
+          git push
+
+      - name: Extract plugin version
+        id: plugin_version
+        shell: bash
+        run: |
+          VERSION="$(awk -F'Version:' '/^[[:space:]]*\* Version:/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' 2424-platform.php)"
+          if [ -z "$VERSION" ]; then
+            echo "Unable to extract plugin version."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build plugin zip
+        shell: bash
+        run: |
+          rm -rf dist
+          mkdir -p dist
+          TMP_DIR="$(mktemp -d)"
+          mkdir -p "$TMP_DIR/$PLUGIN_SLUG"
+          rsync -a ./ "$TMP_DIR/$PLUGIN_SLUG/" \
+            --exclude ".git" \
+            --exclude ".github" \
+            --exclude "dist" \
+            --exclude "package" \
+            --exclude "*.zip"
+          cd "$TMP_DIR"
+          zip -r "$GITHUB_WORKSPACE/dist/${PLUGIN_SLUG}-wp-${{ steps.plugin_version.outputs.version }}.zip" "$PLUGIN_SLUG"
+
+      - name: Prepare update metadata
+        shell: bash
+        run: |
+          cp latest.json dist/latest.json
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload plugin artifacts to S3
+        shell: bash
+        run: |
+          aws s3 cp \
+            "dist/${PLUGIN_SLUG}-wp-${{ steps.plugin_version.outputs.version }}.zip" \
+            "s3://${{ secrets.S3_PLUGIN_BUCKET }}/${PLUGIN_SLUG}/${PLUGIN_SLUG}-wp-${{ steps.plugin_version.outputs.version }}.zip"
+          aws s3 cp \
+            "dist/latest.json" \
+            "s3://${{ secrets.S3_PLUGIN_BUCKET }}/${PLUGIN_SLUG}/latest.json" \
+            --content-type "application/json"
+
+      - name: Invalidate CloudFront cache
+        if: ${{ env.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+        shell: bash
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ env.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/${PLUGIN_SLUG}/latest.json"

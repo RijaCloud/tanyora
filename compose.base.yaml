@@ -1,0 +1,45 @@
+services:
+  wordpress:
+    mem_limit: 384m
+    environment:
+      TANYORA_ISOLATED_MODE: "true"
+      PLATFORM_SUBMISSIONS_SECRET: ${TANYORA_PLATFORM_SECRET:?Set TANYORA_PLATFORM_SECRET}
+      PLATFORM_PUBLIC_SITE_URL: https://tanyora.mijary.tech
+    volumes:
+      - ./wp-plugin-base:/var/www/html/wp-content/plugins/tanyora-platform:ro
+      - ./deploy/wordpress-uploads.ini:/usr/local/etc/php/conf.d/tanyora-uploads.ini:ro
+  base-web:
+    image: node:22-alpine
+    restart: unless-stopped
+    working_dir: /app
+    command: ["node", "node_modules/next/dist/bin/next", "start", "-p", "3000"]
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=384
+      NEXT_PUBLIC_SITE_URL: https://tanyora.mijary.tech
+      APP_BASE_URL: https://tanyora.mijary.tech
+      DEPLOYMENT_ENV: preview
+      USE_NEWS_MOCKS: "true"
+      CACHE_DRIVER: memory
+      WP_GRAPHQL_URL: http://wordpress/index.php?graphql
+      WORDPRESS_INTERNAL_API_BASE_URL: http://wordpress/index.php?rest_route=/2424/v1
+      PLATFORM_SUBMISSIONS_SECRET: ${TANYORA_PLATFORM_SECRET:?Set TANYORA_PLATFORM_SECRET}
+    volumes:
+      - ./base-frontend:/app:ro
+    networks: [internal]
+    mem_limit: 512m
+    cpus: 1.0
+  base-gateway:
+    image: node:22-alpine
+    restart: unless-stopped
+    command: ["node", "/gateway.mjs"]
+    environment:
+      LISTEN_PORT: "3237"
+      TARGET_HOST: base-web
+      TARGET_PORT: "3000"
+    volumes:
+      - ./deploy/tcp-gateway.mjs:/gateway.mjs:ro
+    networks: [internal, preview]
+    ports: ["127.0.0.1:3237:3237"]
+    mem_limit: 64m
+    cpus: 0.10

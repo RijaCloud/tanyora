@@ -1,0 +1,26 @@
+services:
+  database:
+    mem_limit: 256m
+    cpus: 0.15
+  wordpress:
+    mem_limit: 256m
+    cpus: 0.35
+    networks: [internal, preview]
+  web:
+    image: node:22-alpine
+    restart: unless-stopped
+    working_dir: /app
+    command: ["node", "node_modules/next/dist/bin/next", "start", "-p", "3137"]
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=192
+      TANYORA_DEMO_MODE: "true"
+      TANYORA_WP_URL: http://wordpress
+    volumes:
+      - ./web:/app:ro
+    networks: [internal, preview]
+    ports: ["127.0.0.1:3137:3137"]
+    mem_limit: 256m
+    cpus: 0.50
+networks:
+  preview:

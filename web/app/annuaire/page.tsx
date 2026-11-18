@@ -1,0 +1,3 @@
+import { getExperts } from "@/lib/catalog";
+
+export default async function Directory(){const experts=await getExperts();return <main className="inner"><div className="eyebrow">RÉSEAU / EXPERTISE</div><h1>Les bonnes personnes, au bon endroit.</h1><p className="intro">L’annuaire accueille les cabinets et consultants autorisés à présenter leurs activités.</p>{experts.length ? <div className="grid">{experts.map((e)=><article className="card card-content" key={e.slug}><small>{e.specialty} · {e.location}</small><h3>{e.title}</h3><p>{e.summary}</p></article>)}</div> : <div className="empty">Aucune fiche publiée pour le moment.</div>}</main>}

@@ -1,0 +1,32 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - rm -rf node_modules .next
+        - corepack enable
+        - corepack prepare pnpm@10.0.0 --activate
+        - pnpm install --frozen-lockfile
+    build:
+      commands:
+        - echo "NEXT_PUBLIC_BUILD_ID=${AWS_COMMIT_ID:-amplify}" >> .env.production
+        - env | grep -e '^NEXT_PUBLIC_' >> .env.production || true
+        - env | grep -e '^APP_BASE_URL=' >> .env.production || true
+        - env | grep -e '^GOOGLE_CLIENT_ID=' >> .env.production || true
+        - env | grep -e '^GOOGLE_CLIENT_SECRET=' >> .env.production || true
+        - env | grep -e '^WORDPRESS_INTERNAL_API_BASE_URL=' >> .env.production || true
+        - env | grep -e '^PLATFORM_SUBMISSIONS_SECRET=' >> .env.production || true
+        - env | grep -e '^WP_GRAPHQL_URL=' >> .env.production || true
+        - env | grep -e '^EXCHANGERATE_API_KEY=' >> .env.production || true
+        - env | grep -e '^STRIPE_SECRET_KEY=' >> .env.production || true
+        - env | grep -e '^STRIPE_WEBHOOK_SECRET=' >> .env.production || true
+        - env | grep -e '^SUBSCRIPTION_PROVIDER=' >> .env.production || true
+        - pnpm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .pnpm-store/**/*
+      - .next/cache/**/*

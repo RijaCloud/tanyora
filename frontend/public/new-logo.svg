@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 224" role="img" aria-labelledby="title">
+  <title id="title">Tanyora</title>
+  <rect width="224" height="224" rx="38" fill="#173f37"/>
+  <path d="M112 26 159 54 182 105 154 154 112 180 70 154 42 105 65 54Z" fill="#b98b52"/>
+  <path d="M112 26 159 54 137 104 112 180 87 104 65 54Z" fill="#d9bc85"/>
+  <path d="M65 54 87 104 42 105ZM159 54 182 105 137 104Z" fill="#8cae98"/>
+  <path d="M87 104h50l-25 76Z" fill="#f1e8d5"/>
+  <path d="M81 72h62v12h-24v56h-14V84H81Z" fill="#173f37"/>
+  <text x="112" y="207" fill="#f5efe2" font-family="Georgia,serif" font-size="17" font-weight="700" letter-spacing="3" text-anchor="middle">TANYORA</text>
+</svg>

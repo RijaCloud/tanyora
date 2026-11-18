@@ -1,0 +1,46 @@
+name: Frontend quality
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-and-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test:unit
+
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      API_GATEWAY_BASE_URL: http://127.0.0.1:9
+      WORDPRESS_INTERNAL_API_BASE_URL: http://127.0.0.1:9
+      PLATFORM_SUBMISSIONS_SECRET: test-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: npx playwright install --with-deps chromium
+      - run: pnpm test:e2e:smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-smoke-report
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore

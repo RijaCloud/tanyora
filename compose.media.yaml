@@ -1,0 +1,19 @@
+services:
+  media-service:
+    image: node:22-alpine
+    restart: unless-stopped
+    working_dir: /app
+    command: ["node", "server.mjs"]
+    environment:
+      NODE_ENV: production
+      PORT: "3080"
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:?Set Tanyora Cloudinary cloud name}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:?Set Tanyora Cloudinary API key}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:?Set Tanyora Cloudinary API secret}
+      CLOUDINARY_SIGNED_UPLOAD_PRESET: ${CLOUDINARY_SIGNED_UPLOAD_PRESET:?Set signed image preset}
+      TANYORA_MEDIA_SERVICE_SECRET: ${TANYORA_MEDIA_SERVICE_SECRET:?Set internal media secret}
+    volumes:
+      - ./media-service:/app:ro
+    networks: [internal, preview]
+    mem_limit: 128m
+    cpus: 0.25

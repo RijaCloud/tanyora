@@ -1,0 +1,254 @@
+name: Next.js Standalone
+
+on:
+  push:
+    branches: [main, staging]
+  workflow_dispatch:
+
+concurrency:
+  group: nextjs-standalone-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DEPLOY_PATH: ${{ github.ref_name == 'staging' && '/var/www/staging.2424.mg' || '/var/www/2424.mg' }}
+      DEPLOY_HOST: ${{ github.ref_name == 'staging' && secrets.STAGING_DEPLOY_HOST || secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ github.ref_name == 'staging' && secrets.STAGING_DEPLOY_USER || secrets.DEPLOY_USER }}
+      DEPLOY_SSH_KEY: ${{ github.ref_name == 'staging' && secrets.STAGING_DEPLOY_SSH_KEY || secrets.DEPLOY_SSH_KEY }}
+      APP_BASE_URL: ${{ github.ref_name == 'staging' && secrets.STAGING_APP_BASE_URL || secrets.APP_BASE_URL }}
+      NEXT_PUBLIC_SITE_URL: ${{ github.ref_name == 'staging' && secrets.STAGING_NEXT_PUBLIC_SITE_URL || secrets.NEXT_PUBLIC_SITE_URL }}
+      DEPLOYMENT_ENV: ${{ github.ref_name == 'staging' && 'preproduction' || 'production' }}
+      NEXT_PUBLIC_BUILD_ID: ${{ github.sha }}
+      WP_GRAPHQL_URL: ${{ github.ref_name == 'staging' && 'https://2424-backoffice.mijary.com/index.php?graphql' || secrets.WP_GRAPHQL_URL }}
+      WORDPRESS_INTERNAL_API_BASE_URL: ${{ github.ref_name == 'staging' && 'https://2424-backoffice.mijary.com/index.php?rest_route=/2424/v1' || secrets.WORDPRESS_INTERNAL_API_BASE_URL }}
+      PLATFORM_SUBMISSIONS_SECRET: ${{ github.ref_name == 'staging' && secrets.STAGING_PLATFORM_SUBMISSIONS_SECRET || secrets.PLATFORM_SUBMISSIONS_SECRET }}
+      API_GATEWAY_BASE_URL: ${{ github.ref_name == 'staging' && secrets.STAGING_API_GATEWAY_BASE_URL || secrets.API_GATEWAY_BASE_URL }}
+      API_GATEWAY_MEDIA_PRESIGN_PATH: "/media/presign"
+      CACHE_DRIVER: "redis"
+      REDIS_URL: ${{ github.ref_name == 'staging' && secrets.STAGING_REDIS_URL || secrets.REDIS_URL }}
+      REDIS_KEY_PREFIX: ${{ github.ref_name == 'staging' && secrets.STAGING_REDIS_KEY_PREFIX || secrets.REDIS_KEY_PREFIX }}
+      REDIS_OPERATION_TIMEOUT_MS: "1500"
+      REDIS_CONNECT_TIMEOUT_MS: "1500"
+      SUBSCRIPTION_PROVIDER: "woocommerce"
+      GOOGLE_CLIENT_ID: ${{ github.ref_name == 'staging' && secrets.STAGING_GOOGLE_CLIENT_ID || secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ github.ref_name == 'staging' && secrets.STAGING_GOOGLE_CLIENT_SECRET || secrets.GOOGLE_CLIENT_SECRET }}
+      EXCHANGERATE_API_KEY: ${{ github.ref_name == 'staging' && secrets.STAGING_EXCHANGERATE_API_KEY || secrets.EXCHANGERATE_API_KEY }}
+      STRIPE_SECRET_KEY: ${{ github.ref_name == 'staging' && secrets.STAGING_STRIPE_SECRET_KEY || secrets.STRIPE_SECRET_KEY }}
+      STRIPE_WEBHOOK_SECRET: ${{ github.ref_name == 'staging' && secrets.STAGING_STRIPE_WEBHOOK_SECRET || secrets.STRIPE_WEBHOOK_SECRET }}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ github.ref_name == 'staging' && secrets.STAGING_NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+      WC_PRODUCT_ID_ESSENTIEL: ${{ github.ref_name == 'staging' && '16' || '33' }}
+      WC_PRODUCT_ID_BUSINESS: ${{ github.ref_name == 'staging' && '17' || '34' }}
+      WC_PRODUCT_SKU_ESSENTIEL: "essentiel"
+      WC_PRODUCT_SKU_BUSINESS: "business"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Validate deploy secrets
+        run: |
+          missing=0
+          [ -z "$DEPLOY_HOST" ] && echo "Missing secret: DEPLOY_HOST" && missing=1
+          [ -z "$DEPLOY_USER" ] && echo "Missing secret: DEPLOY_USER" && missing=1
+          [ -z "$DEPLOY_SSH_KEY" ] && echo "Missing secret: DEPLOY_SSH_KEY" && missing=1
+          [ -z "$APP_BASE_URL" ] && echo "Missing secret: APP_BASE_URL" && missing=1
+          [ -z "$NEXT_PUBLIC_SITE_URL" ] && echo "Missing secret: NEXT_PUBLIC_SITE_URL" && missing=1
+          [ -z "$DEPLOYMENT_ENV" ] && echo "Missing env: DEPLOYMENT_ENV" && missing=1
+          if [ "$DEPLOYMENT_ENV" = "production" ] && { [ "$APP_BASE_URL" != "https://www.2424.mg" ] || [ "$NEXT_PUBLIC_SITE_URL" != "https://www.2424.mg" ]; }; then
+            echo "Production SEO requires APP_BASE_URL and NEXT_PUBLIC_SITE_URL to be https://www.2424.mg"
+            missing=1
+          fi
+          [ -z "$PLATFORM_SUBMISSIONS_SECRET" ] && echo "Missing secret: PLATFORM_SUBMISSIONS_SECRET" && missing=1
+          [ -z "$API_GATEWAY_BASE_URL" ] && echo "Missing secret: API_GATEWAY_BASE_URL" && missing=1
+          [ -z "$API_GATEWAY_MEDIA_PRESIGN_PATH" ] && echo "Missing env: API_GATEWAY_MEDIA_PRESIGN_PATH" && missing=1
+          [ -z "$CACHE_DRIVER" ] && echo "Missing env: CACHE_DRIVER" && missing=1
+          if [ "$CACHE_DRIVER" = "redis" ]; then
+            [ -z "$REDIS_URL" ] && echo "Missing secret: REDIS_URL" && missing=1
+            [ -z "$REDIS_KEY_PREFIX" ] && echo "Missing secret: REDIS_KEY_PREFIX" && missing=1
+          fi
+          [ -z "$SUBSCRIPTION_PROVIDER" ] && echo "Missing env: SUBSCRIPTION_PROVIDER" && missing=1
+          [ -z "$GOOGLE_CLIENT_ID" ] && echo "Missing secret: GOOGLE_CLIENT_ID" && missing=1
+          [ -z "$GOOGLE_CLIENT_SECRET" ] && echo "Missing secret: GOOGLE_CLIENT_SECRET" && missing=1
+          [ -z "$EXCHANGERATE_API_KEY" ] && echo "Missing secret: EXCHANGERATE_API_KEY" && missing=1
+          [ -z "$STRIPE_SECRET_KEY" ] && echo "Missing secret: STRIPE_SECRET_KEY" && missing=1
+          [ -z "$STRIPE_WEBHOOK_SECRET" ] && echo "Missing secret: STRIPE_WEBHOOK_SECRET" && missing=1
+          [ -z "$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" ] && echo "Missing secret: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" && missing=1
+          if [ "$missing" -ne 0 ]; then
+            echo "Deployment secrets are incomplete. Failing deploy job."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate TypeScript
+        run: pnpm typecheck
+
+      - name: Run unit and contract tests
+        run: pnpm test:unit
+
+      - name: Build standalone app
+        run: pnpm run build
+
+      - name: Validate standalone output
+        run: |
+          if [ ! -d ".next/standalone" ]; then
+            echo "Missing .next/standalone after build."
+            exit 1
+          fi
+          if [ ! -f ".next/standalone/server.js" ]; then
+            echo "Missing standalone server entrypoint."
+            exit 1
+          fi
+
+      - name: Package standalone artifact
+        run: |
+          tar -czf nextjs-standalone.tar.gz \
+            .next/standalone \
+            .next/static \
+            public \
+            ecosystem.config.js
+
+      - name: Upload artifact to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
+          key: ${{ env.DEPLOY_SSH_KEY }}
+          source: nextjs-standalone.tar.gz
+          target: ${{ env.DEPLOY_PATH }}
+
+      - name: Extract and restart PM2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ env.DEPLOY_HOST }}
+          username: ${{ env.DEPLOY_USER }}
+          key: ${{ env.DEPLOY_SSH_KEY }}
+          envs: DEPLOY_PATH,APP_BASE_URL,NEXT_PUBLIC_SITE_URL,DEPLOYMENT_ENV,NEXT_PUBLIC_BUILD_ID,WP_GRAPHQL_URL,WORDPRESS_INTERNAL_API_BASE_URL,PLATFORM_SUBMISSIONS_SECRET,API_GATEWAY_BASE_URL,API_GATEWAY_MEDIA_PRESIGN_PATH,CACHE_DRIVER,REDIS_URL,REDIS_KEY_PREFIX,REDIS_OPERATION_TIMEOUT_MS,REDIS_CONNECT_TIMEOUT_MS,SUBSCRIPTION_PROVIDER,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,EXCHANGERATE_API_KEY,STRIPE_SECRET_KEY,STRIPE_WEBHOOK_SECRET,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,WC_PRODUCT_ID_ESSENTIEL,WC_PRODUCT_ID_BUSINESS
+          script: |
+            set -e
+
+            # Ensure PATH is initialized in non-interactive SSH sessions.
+            export PATH="$PATH:/usr/local/bin:/usr/bin:/bin:$HOME/.local/bin:$HOME/.npm-global/bin"
+
+            # Load nvm if present (common setup where pm2 is installed globally via npm).
+            if [ -s "$HOME/.nvm/nvm.sh" ]; then
+              . "$HOME/.nvm/nvm.sh"
+              nvm use --lts >/dev/null 2>&1 || true
+            fi
+
+            if ! command -v pm2 >/dev/null 2>&1; then
+              echo "pm2 not found in PATH: $PATH"
+              echo "node: $(command -v node || echo not found)"
+              echo "npm: $(command -v npm || echo not found)"
+              exit 127
+            fi
+
+            APP_PATH="${{ env.DEPLOY_PATH }}"
+            mkdir -p "$APP_PATH"
+            cd "$APP_PATH"
+
+            # The running standalone server owns this tree and can still write
+            # Next cache files. Stop it before removing a previous release.
+            pm2 delete 2424-nextjs >/dev/null 2>&1 || true
+            sleep 1
+
+            # Clean previous standalone output before unpacking to avoid pnpm symlink collisions.
+            rm -rf .next/standalone .next/static public ecosystem.config.js
+            tar -xzf nextjs-standalone.tar.gz
+            rm -f nextjs-standalone.tar.gz
+
+            # Next standalone runtime expects these assets inside .next/standalone
+            mkdir -p .next/standalone/.next .next/standalone/public
+            rm -rf .next/standalone/.next/static .next/standalone/public/*
+            cp -R .next/static .next/standalone/.next/
+            cp -R public/. .next/standalone/public/
+
+            cat > .next/standalone/ecosystem.runtime.config.js <<EOF
+            module.exports = {
+              apps: [
+                {
+                  name: "2424-nextjs",
+                  script: "server.js",
+                  cwd: "./.next/standalone",
+                  instances: 1,
+                  exec_mode: "fork",
+                  env: {
+                    NODE_ENV: "production",
+                    DEPLOYMENT_ENV: "${DEPLOYMENT_ENV}",
+                    PORT: 3000,
+                    APP_BASE_URL: "${APP_BASE_URL}",
+                    NEXT_PUBLIC_SITE_URL: "${NEXT_PUBLIC_SITE_URL}",
+                    NEXT_PUBLIC_BUILD_ID: "${NEXT_PUBLIC_BUILD_ID}",
+                    WP_GRAPHQL_URL: "${WP_GRAPHQL_URL}",
+                    WORDPRESS_INTERNAL_API_BASE_URL: "${WORDPRESS_INTERNAL_API_BASE_URL}",
+                    PLATFORM_SUBMISSIONS_SECRET: "${PLATFORM_SUBMISSIONS_SECRET}",
+                    API_GATEWAY_BASE_URL: "${API_GATEWAY_BASE_URL}",
+                    API_GATEWAY_MEDIA_PRESIGN_PATH: "${API_GATEWAY_MEDIA_PRESIGN_PATH}",
+                    CACHE_DRIVER: "${CACHE_DRIVER}",
+                    REDIS_URL: "${REDIS_URL}",
+                    REDIS_KEY_PREFIX: "${REDIS_KEY_PREFIX}",
+                    REDIS_OPERATION_TIMEOUT_MS: "${REDIS_OPERATION_TIMEOUT_MS}",
+                    REDIS_CONNECT_TIMEOUT_MS: "${REDIS_CONNECT_TIMEOUT_MS}",
+                    SUBSCRIPTION_PROVIDER: "${SUBSCRIPTION_PROVIDER}",
+                    GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}",
+                    GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET}",
+                    EXCHANGERATE_API_KEY: "${EXCHANGERATE_API_KEY}",
+                    STRIPE_SECRET_KEY: "${STRIPE_SECRET_KEY}",
+                    STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET}",
+                    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}",
+                    WC_PRODUCT_ID_ESSENTIEL: "${WC_PRODUCT_ID_ESSENTIEL}",
+                    WC_PRODUCT_ID_BUSINESS: "${WC_PRODUCT_ID_BUSINESS}",
+                    WC_PRODUCT_SKU_ESSENTIEL: "essentiel",
+                    WC_PRODUCT_SKU_BUSINESS: "business"
+                  }
+                }
+              ]
+            };
+            EOF
+
+            # Start from the freshly unpacked standalone release.
+            pm2 start .next/standalone/ecosystem.runtime.config.js --update-env
+            pm2 save
+
+            echo "Waiting for Next.js to accept connections on 127.0.0.1:3000..."
+            READY=0
+            for i in $(seq 1 30); do
+              if curl -fsS "http://127.0.0.1:3000/" >/dev/null 2>&1; then
+                READY=1
+                break
+              fi
+              sleep 2
+            done
+
+            if [ "$READY" -ne 1 ]; then
+              echo "Next.js did not become ready in time."
+              pm2 status
+              pm2 logs 2424-nextjs --lines 80 --nostream || true
+              exit 1
+            fi
+            echo "Application is reachable. Deployment healthcheck passed."
+
+            # The public proxy has a short timeout, while the first editorial
+            # sitemap build may need to hydrate its shared Redis cache. Warm it
+            # locally before crawlers can request it through the proxy.
+            if curl --fail --silent --show-error --max-time 600 "http://127.0.0.1:3000/sitemap.xml" >/dev/null; then
+              echo "Sitemap cache warmed successfully."
+            else
+              echo "Warning: sitemap cache warm-up failed; inspect the Next.js logs before relying on crawler traffic."
+              pm2 logs 2424-nextjs --lines 80 --nostream || true
+            fi
+
+            pm2 status

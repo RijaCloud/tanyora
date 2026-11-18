@@ -1,0 +1,44 @@
+.page { min-height: 100vh; background: #f7f5ef; color: #272a26; }
+.shell { width: min(100%, 1440px); margin-inline: auto; padding: 34px clamp(18px, 3.5vw, 52px) 100px; }
+.back { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 28px; color: #345847; font-size: 12px; font-weight: 750; text-decoration: none; }
+.back:hover { text-decoration: underline; }
+.notice { margin-bottom: 28px; padding: 13px 16px; border: 1px solid #cdbf9e; border-radius: 9px; background: #f2ebd9; color: #444b3b; font-size: 12px; line-height: 1.6; }
+.notice strong { margin-right: 4px; }
+.detail { display: grid; grid-template-columns: minmax(270px, .88fr) minmax(0, 1.12fr); gap: clamp(32px, 5vw, 84px); align-items: start; }
+.identity { min-width: 0; }
+.visual { display: grid; aspect-ratio: 1.17 / 1; overflow: hidden; border: 1px solid #d8d2c3; border-radius: 12px; background: #e4e6db; }
+.visual img { width: 100%; height: 100%; object-fit: cover; }
+.visual span { display: grid; place-items: center; width: 100%; height: 100%; color: #fff; font-family: var(--font-editorial-accent), Georgia, serif; font-size: clamp(110px, 17vw, 220px); line-height: 1; }
+.eyebrow { margin: 0; color: #766b53; font-size: 10px; font-weight: 750; letter-spacing: .14em; line-height: 1.5; text-transform: uppercase; }
+.identity .eyebrow { margin-top: 23px; }
+.identity h1 { margin: 10px 0 16px; font-family: var(--font-editorial-accent), Georgia, serif !important; font-size: clamp(42px, 4.5vw, 68px); font-weight: 400 !important; letter-spacing: -.035em; line-height: 1.04; overflow-wrap: anywhere; }
+.place { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: #626b60; font-size: 13px; }
+.content { min-width: 0; padding-top: 12px; }
+.content section { padding: 0 0 30px; border-bottom: 1px solid #d6d4ca; }
+.content section + section { padding-top: 30px; }
+.content h2 { margin: 8px 0 16px; font-family: var(--font-editorial-accent), Georgia, serif !important; font-size: clamp(29px, 3vw, 42px); font-weight: 400 !important; line-height: 1.1; }
+.description { max-width: 66ch; margin: 0; color: #4c554d; font-size: 15px; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.facts > div { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.facts span { color: #7c8379; font-size: 10px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.facts strong { font-size: 13px; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
+.contact > p:not(.eyebrow), .contactLinks p { margin: 0; color: #606a60; font-size: 13px; line-height: 1.6; }
+.contactLinks { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.contactLinks a { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 9px 13px; border: 1px solid #b7c7b6; border-radius: 8px; color: #294637; font-size: 12px; font-weight: 700; text-decoration: none; overflow-wrap: anywhere; }
+.contactLinks a:hover { border-color: #345847; background: #edf2e8; }
+.saveArea { margin-top: 24px; }
+.saveArea button { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 9px 13px; border: 1px solid #d6d4ca; border-radius: 8px; background: transparent; color: #345847; font-size: 12px; font-weight: 700; cursor: pointer; }
+.saveArea button:hover { border-color: #345847; }
+.saveArea button:disabled { cursor: wait; opacity: .55; }
+.saveArea p { margin: 8px 0 0; color: #9e352e; font-size: 12px; }
+:global(.dark) .page { background: #17251e; color: #eef0e9; }
+:global(.dark) .notice { border-color: #665f49; background: #37382c; color: #e4dfcf; }
+:global(.dark) .visual { border-color: #465949; background: #27392d; }
+:global(.dark) .eyebrow { color: #c7bd9f; }
+:global(.dark) .place, :global(.dark) .description, :global(.dark) .contact > p:not(.eyebrow), :global(.dark) .contactLinks p { color: #bac6bb; }
+:global(.dark) .content section { border-color: #465949; }
+:global(.dark) .facts span { color: #adb9aa; }
+:global(.dark) .contactLinks a, :global(.dark) .saveArea button, :global(.dark) .back { color: #b9d9b9; }
+:global(.dark) .contactLinks a:hover { background: #253b30; }
+@media (max-width: 800px) { .detail { grid-template-columns: 1fr; gap: 33px; } .visual { aspect-ratio: 1.5 / 1; max-height: 440px; } .content { padding-top: 0; } }
+@media (max-width: 500px) { .shell { padding: 21px 16px 70px; } .visual { aspect-ratio: 1.12 / 1; } .facts { grid-template-columns: 1fr 1fr; } .identity h1 { font-size: clamp(38px, 10vw, 52px); } }
